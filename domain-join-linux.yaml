@@ -1,0 +1,35 @@
+---
+
+- name: 'Install all needed packages for AD joinig'
+  yum: name={{ item }}  state=present
+  with_items: "{{ required_packages }}"
+
+- name: 'Check connectivity with SGI domain control'
+  shell: adcli info <DOMAIN-NAME>
+
+- name: 'Joing <DOMAIN-NAME> domain control'
+  shell: echo -n '<DOMAIN-PASSOWRD>' | adcli join <DOMAIN-NAME> -U <DOMAIN-USER> --stdin-password
+
+- name: 'Verifying the domain joining'
+  shell: klist -kte
+
+- name: 'Copy krb5 config file'
+  template:
+    src: krb5.conf.j2
+    dest: /etc/krb5.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: 'update the ketab configurations'
+  shell: authconfig --enablesssd --enablesssdauth --update
+
+- name: 'Copy sssd config file'
+  template:
+    src: sssd.conf.j2
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify:
+   - restart sssd
